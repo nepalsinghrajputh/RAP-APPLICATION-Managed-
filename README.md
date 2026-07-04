@@ -3,7 +3,7 @@
 This project demonstrates how to build a complete **SAP RAP (RESTful ABAP Programming Model) Managed Application** for Billing Management using **OData V2**.
 
 The application covers the complete RAP development flow, from database tables to a Fiori-ready UI service.
-# SAP RAP Managed Billing Application
+# SAP RAP Managed Billing Application with Fiori Elements Application
 
 ## Project Architecture
 
