@@ -1,4 +1,4 @@
-# SAP RAP Managed Application - Billing Management
+# SAP RAP Managed Billing Application
 
 This project demonstrates how to build a complete **SAP RAP (RESTful ABAP Programming Model) Managed Application** for Billing Management using **OData V2**.
 
