@@ -1,0 +1,24 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Billing Item'
+@Metadata.allowExtensions: true
+//@Metadata.ignorePropagatedAnnotations: true
+define view entity ZRAP_C_BILLITM 
+as projection on ZRAP_R_BILLITM
+{
+    key BillId,
+    key ItemNo,
+    MaterialId,
+    Description,
+    Quantity,
+    ItemAmount,
+    Currency,
+    Uom,
+    CreatedBy,
+    CreatedAt,
+    LastChangedBy,
+    LastChangedAt,
+    LocalLastChangedAt,
+    /* Associations */
+    _Hdr : redirected to parent ZRAP_C_BILLHDR
+}

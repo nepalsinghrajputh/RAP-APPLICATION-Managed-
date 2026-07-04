@@ -1,0 +1,230 @@
+CLASS zbp_rap_c_billhdr DEFINITION PUBLIC ABSTRACT FINAL FOR BEHAVIOR OF zrap_c_billhdr.
+ENDCLASS.
+
+CLASS zbp_rap_c_billhdr IMPLEMENTATION.
+ENDCLASS.
+
+// Local classes // 
+CLASS lhc_BillHdr DEFINITION INHERITING FROM cl_abap_behavior_handler.
+  PRIVATE SECTION.
+
+    METHODS precheck_create FOR PRECHECK
+      IMPORTING entities FOR CREATE BillHdr.
+
+    METHODS precheck_update FOR PRECHECK
+      IMPORTING entities FOR UPDATE BillHdr.
+
+ENDCLASS.
+
+CLASS lhc_BillHdr IMPLEMENTATION.
+
+METHOD precheck_create.
+    "Precheck Trigger for the Actions and Triggers in the Transactional Phase
+    DATA lv_cust(6) TYPE n.
+    LOOP AT entities ASSIGNING FIELD-SYMBOL(<lfs_entites>).
+      IF <lfs_entites>-CustomerId IS NOT INITIAL.
+
+        lv_cust = <lfs_entites>-CustomerId.
+
+        SELECT SINGLE * FROM /DMO/I_Customer
+          WHERE CustomerID = @lv_cust
+          INTO @DATA(ls_customer).
+
+        IF sy-subrc NE 0.
+          "for Create we don't have the %tky so we use %CID
+          APPEND VALUE #( %cid = <lfs_entites>-%cid ) TO failed-billhdr.
+
+          APPEND VALUE #(
+            %cid = <lfs_entites>-%cid
+            %element-customerid = if_abap_behv=>mk-on
+            %msg = new_message_with_text(
+                      severity = if_abap_behv_message=>severity-error
+                      text     = 'The customer id is not valid'
+                   )
+          ) TO reported-billhdr.
+
+        ENDIF.
+      ELSE.
+        "for Create we don't have the %tky so we use %CID
+        APPEND VALUE #( %cid = <lfs_entites>-%cid ) TO failed-billhdr.
+
+        APPEND VALUE #(
+          %cid = <lfs_entites>-%cid
+          %element-customerid = if_abap_behv=>mk-on
+          %msg = new_message_with_text(
+                    severity = if_abap_behv_message=>severity-error
+                    text     = 'The customer id is mandatory'
+                 )
+        ) TO reported-billhdr.
+      ENDIF.
+      IF <lfs_entites>-BillType IS NOT INITIAL.
+        SELECT *  FROM ddcds_customer_domain_value_t(
+         p_domain_name = 'ZRAP_DM_BILLTYPE' )  INTO TABLE @DATA(lt_billing).
+        IF line_exists( lt_billing[ value_low = <lfs_entites>-BillType ] ).
+        ELSE.
+          "for Update  we will have %tky which will unique for each transaction
+          APPEND VALUE #( %cid = <lfs_entites>-%cid ) TO failed-billhdr.
+
+          APPEND VALUE #(
+            %cid = <lfs_entites>-%cid
+            %element-billtype = if_abap_behv=>mk-on
+            %msg = new_message_with_text(
+                      severity = if_abap_behv_message=>severity-error
+                      text     = 'Billing Type is not valid'
+                   )
+          ) TO reported-billhdr.
+
+        ENDIF.
+      ELSE.
+        APPEND VALUE #( %cid = <lfs_entites>-%cid ) TO failed-billhdr.
+
+        APPEND VALUE #(
+          %cid = <lfs_entites>-%cid
+          %element-billtype = if_abap_behv=>mk-on
+          %msg = new_message_with_text(
+                    severity = if_abap_behv_message=>severity-error
+                    text     = 'Billing Type is mandatoy'
+                 )
+        ) TO reported-billhdr.
+      ENDIF.
+      IF <lfs_entites>-SalesOrg IS NOT INITIAL.
+        SELECT *  FROM ddcds_customer_domain_value_t(
+         p_domain_name = 'ZRAP_DM_SALES_ORG' )  INTO TABLE @DATA(lt_sales_org).
+        IF line_exists( lt_sales_org[ value_low = <lfs_entites>-SalesOrg ] ).
+        ELSE.
+          "for Update  we will have %tky which will unique for each transaction
+          APPEND VALUE #( %cid = <lfs_entites>-%cid ) TO failed-billhdr.
+
+          APPEND VALUE #(
+            %cid = <lfs_entites>-%cid
+            %element-salesorg = if_abap_behv=>mk-on
+            %msg = new_message_with_text(
+                      severity = if_abap_behv_message=>severity-error
+                      text     = 'Sales Org is not valid'
+                   )
+          ) TO reported-billhdr.
+
+        ENDIF.
+      ELSE.
+        "for Update  we will have %tky which will unique for each transaction
+        APPEND VALUE #( %cid = <lfs_entites>-%cid ) TO failed-billhdr.
+
+        APPEND VALUE #(
+          %cid = <lfs_entites>-%cid
+          %element-salesorg = if_abap_behv=>mk-on
+          %msg = new_message_with_text(
+                    severity = if_abap_behv_message=>severity-error
+                    text     = 'Sales Org is mandatory'
+                 )
+        ) TO reported-billhdr.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD precheck_update.
+    "Precheck Trigger for the Actions and Triggers in the Transactional Phase
+    DATA lv_cust(6) TYPE n.
+    LOOP AT entities ASSIGNING FIELD-SYMBOL(<lfs_entites>).
+      IF <lfs_entites>-CustomerId IS NOT INITIAL.
+
+        lv_cust = <lfs_entites>-CustomerId.
+
+        SELECT SINGLE * FROM /DMO/I_Customer
+          WHERE CustomerID = @lv_cust
+          INTO @DATA(ls_customer).
+
+        IF sy-subrc NE 0.
+          "for Update  we will have %tky which will unique for each transaction
+          APPEND VALUE #( %tky = <lfs_entites>-%tky ) TO failed-billhdr.
+
+          APPEND VALUE #(
+            %tky = <lfs_entites>-%tky
+            %element-customerid = if_abap_behv=>mk-on
+            %msg = new_message_with_text(
+                      severity = if_abap_behv_message=>severity-error
+                      text     = 'The customer id is not valid'
+                   )
+          ) TO reported-billhdr.
+
+        ENDIF.
+      ELSE.
+        "for Update  we will have %tky which will unique for each transaction
+        APPEND VALUE #( %tky = <lfs_entites>-%tky ) TO failed-billhdr.
+
+        APPEND VALUE #(
+          %tky = <lfs_entites>-%tky
+          %element-customerid = if_abap_behv=>mk-on
+          %msg = new_message_with_text(
+                    severity = if_abap_behv_message=>severity-error
+                    text     = 'The customer id is mandatory'
+                 )
+        ) TO reported-billhdr.
+      ENDIF.
+
+      IF <lfs_entites>-BillType IS NOT INITIAL.
+        SELECT *  FROM ddcds_customer_domain_value_t(
+         p_domain_name = 'ZRAP_DM_BILLTYPE' )  INTO TABLE @DATA(lt_billing).
+        IF line_exists( lt_billing[ value_low = <lfs_entites>-BillType ] ).
+        ELSE.
+          "for Update  we will have %tky which will unique for each transaction
+          APPEND VALUE #( %tky = <lfs_entites>-%tky ) TO failed-billhdr.
+
+          APPEND VALUE #(
+            %tky = <lfs_entites>-%tky
+            %element-billtype = if_abap_behv=>mk-on
+            %msg = new_message_with_text(
+                      severity = if_abap_behv_message=>severity-error
+                      text     = 'Billing Type is not valid'
+                   )
+          ) TO reported-billhdr.
+
+        ENDIF.
+      ELSE.
+        "for Update  we will have %tky which will unique for each transaction
+        APPEND VALUE #( %tky = <lfs_entites>-%tky ) TO failed-billhdr.
+
+        APPEND VALUE #(
+          %tky = <lfs_entites>-%tky
+          %element-billtype = if_abap_behv=>mk-on
+          %msg = new_message_with_text(
+                    severity = if_abap_behv_message=>severity-error
+                    text     = 'Billing Type is mandatory'
+                 )
+        ) TO reported-billhdr.
+      ENDIF.
+      IF <lfs_entites>-SalesOrg IS NOT INITIAL.
+        SELECT *  FROM ddcds_customer_domain_value_t(
+         p_domain_name = 'ZRAP_DM_SALES_ORG' )  INTO TABLE @DATA(lt_sales_org).
+        IF line_exists( lt_sales_org[ value_low = <lfs_entites>-SalesOrg ] ).
+        ELSE.
+          "for Update  we will have %tky which will unique for each transaction
+          APPEND VALUE #( %tky = <lfs_entites>-%tky ) TO failed-billhdr.
+
+          APPEND VALUE #(
+            %tky = <lfs_entites>-%tky
+            %element-salesorg = if_abap_behv=>mk-on
+            %msg = new_message_with_text(
+                      severity = if_abap_behv_message=>severity-error
+                      text     = 'Sales Org is not valid'
+                   )
+          ) TO reported-billhdr.
+
+        ENDIF.
+      ELSE.
+        "for Update  we will have %tky which will unique for each transaction
+        APPEND VALUE #( %tky = <lfs_entites>-%tky ) TO failed-billhdr.
+
+        APPEND VALUE #(
+          %tky = <lfs_entites>-%tky
+          %element-salesorg = if_abap_behv=>mk-on
+          %msg = new_message_with_text(
+                    severity = if_abap_behv_message=>severity-error
+                    text     = 'Sales Org is mandatory'
+                 )
+        ) TO reported-billhdr.
+      ENDIF.
+
+    ENDLOOP.
+  ENDMETHOD.
+
+ENDCLASS.

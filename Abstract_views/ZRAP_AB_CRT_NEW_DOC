@@ -1,0 +1,8 @@
+@EndUserText.label: 'Abstract Entity for Createing New document'
+define abstract entity ZRAP_AB_CRT_NEW_DOC
+{
+  @EndUserText.label: 'Bill Number'
+  BillId   : abap.numc(10);
+  @EndUserText.label: 'Bill Type'
+  BillType : zrap_de_billtype;   
+}

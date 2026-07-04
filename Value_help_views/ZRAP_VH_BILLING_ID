@@ -1,0 +1,9 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Value Help for Billing ID'
+@Metadata.ignorePropagatedAnnotations: true
+define view entity ZRAP_VH_BILLING_ID as select from ZRAP_I_SALES_HDR
+{
+  @EndUserText.label: 'Billing Number'
+    key BillId
+}

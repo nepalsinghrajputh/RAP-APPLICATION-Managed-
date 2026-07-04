@@ -1,0 +1,24 @@
+projection implementation in class zbp_rap_c_billhdr unique;
+strict ( 2 );
+
+define behavior for ZRAP_C_BILLHDR alias BillHdr
+{
+  use create( precheck );
+  use update( precheck );
+  use delete;
+
+  use action release_doc;
+  use action UpdateBillingdate;
+  use action CreateSalesDoc;
+  use action copy_instance;
+
+  use association _Item { create; }
+}
+
+define behavior for ZRAP_C_BILLITM alias BillItem
+{
+  use update;
+  use delete;
+
+  use association _Hdr;
+}

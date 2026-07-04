@@ -1,0 +1,12 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Value Help for Billing Type'
+@Metadata.ignorePropagatedAnnotations: true
+define view entity ZRAP_VH_BillYTPE 
+as select from DDCDS_CUSTOMER_DOMAIN_VALUE_T( p_domain_name:'ZRAP_DM_BILLTYPE'  )
+{
+  @ObjectModel.text.element: ['Description']
+   key value_low as BillingType,
+     @Semantics.text: true
+    text as Description  
+}

@@ -1,0 +1,173 @@
+@Metadata.layer: #CORE
+@UI: { headerInfo : { typeName: 'Billing Detail' ,
+      typeNamePlural: 'Billing Details' , title : { type : #STANDARD , value: 'BillId' },
+         description :{ type : #STANDARD ,label : 'Billing Type', value: 'BillType' } } }
+
+// Sorting the Data before Displaying in the List Report - Table
+@UI.presentationVariant: [{
+    // For Sorting the Data in Descending Order based on SalesOrg
+    sortOrder: [{
+        by        : 'SalesOrg',
+        direction : #DESC
+    }
+     ],
+         groupBy: [ 'SalesOrg' ]
+}]
+annotate entity ZRAP_C_BILLHDR with
+{
+
+  // For Object page - for facet header & Item
+  @UI.facet: [{ id : 'BILLHEADER', purpose: #STANDARD ,
+    label : 'Billing Details'  , type : #FIELDGROUP_REFERENCE , position:  10 ,targetQualifier : 'BILLHEADER'},
+            {  id : 'BILLHEADRADMIN',
+                purpose: #STANDARD , label : 'Administarion Details'  ,
+               type : #FIELDGROUP_REFERENCE  , position:  20,targetQualifier : 'BILLHEADRADMIN'},
+    // Billing Item Details Annotation in object page -- Item meta data extemsion elements will be displayed ----
+                  { id : 'BILLITEM',
+                  purpose: #STANDARD , label : 'Billing Item Datails'  ,
+                 type : #LINEITEM_REFERENCE , position:  30 , targetElement: '_Item'}
+               ]
+
+   // Each Element Details
+   // LineItem - for Table &  identification - Object Page Detail
+  @UI:{ lineItem :[ { position: 10,label : 'Billing Number' } ,
+       { position :10 , type : #FOR_ACTION , dataAction : 'release_doc' ,label : 'Release Status' } ,
+       { position :20 , type : #FOR_ACTION , dataAction : 'CreateSalesDoc' , label : 'Create Billing Document' },
+       { position :30 , type : #FOR_ACTION , dataAction : 'UpdateBillingdate' , label : 'Update Billing Date' },
+       { position :40 , type : #FOR_ACTION , dataAction : 'copy_instance' , label : 'Copy Billing Document' }] ,
+
+        fieldGroup :
+        [{ qualifier : 'BILLHEADER' , position: 10 , label : 'Billing Number' }],
+         identification: [ { position :10 , type : #FOR_ACTION , dataAction : 'release_doc' , label : 'Release Status' },
+         { position :20 , type : #FOR_ACTION , dataAction : 'CreateSalesDoc' , label : 'Create Billing Document' },
+         { position :30 , type : #FOR_ACTION , dataAction : 'UpdateBillingdate' , label : 'Update Billing Date' },
+         { position :40 , type : #FOR_ACTION , dataAction : 'copy_instance' , label : 'Copy Billing Document' }]
+          ,
+                             selectionField: [{  position: 10 }]}
+  //
+  @Consumption.valueHelpDefinition: [
+  {
+    entity: {
+      name    : 'ZRAP_VH_BILLING_ID',
+      element : 'BillId'
+    }
+  }
+  ]
+  @Consumption.filter.selectionType: #RANGE
+  @EndUserText.label: 'Billing ID'
+  BillId;
+  // LineItem - for Table &  identification - Object Page Detail
+  @UI:{ lineItem :[ { position: 20 , label : 'Billing Type' } ] ,
+   fieldGroup : [{ qualifier : 'BILLHEADER' , position: 20 , label : 'Billing Type' }]
+  //          identification: [{ position: 20 , label : 'Billing Type' }]
+          ,
+
+                             selectionField: [{  position: 20 }]}
+  @EndUserText.label: 'Billing Type'
+  //
+  @Consumption.valueHelpDefinition: [
+    {
+      entity: {
+        name: 'ZRAP_VH_BILLYTPE',
+        element: 'BillingType'
+      }
+    }
+  ]
+  @Consumption.filter.selectionType: #RANGE
+  BillType;
+  @UI:{ lineItem :[ { position: 30 , label : 'Billing Date' } ] ,
+  fieldGroup : [{ qualifier : 'BILLHEADER' , position: 30 , label : 'Billing Date' }]
+  //          identification: [{ position: 30 , label : 'Billing Date' }]
+          ,
+                             selectionField: [{  position: 30 }]}
+  @EndUserText.label: 'Billing Date'
+  BillDate;
+  // LineItem - for Table &  identification - Object Page Detail
+  @UI:{ lineItem :[ { position: 40, label : 'Customer ID' } ] ,
+  fieldGroup : [{ qualifier : 'BILLHEADER' , position: 40 , label : 'Customer ID' }]
+  //          identification: [{ position: 40 , label : 'Customer ID' }]
+          ,
+                             selectionField: [{  position: 40 }]}
+  @EndUserText.label: 'Customer ID'
+  @Consumption.valueHelpDefinition: [
+  {
+    entity: {
+      name    : '/DMO/I_Customer',
+      element : 'CustomerID'
+    }
+  }
+  ]
+  CustomerId;
+  @UI:{ lineItem :[ { position: 50, label : 'Net Amount' } ] ,
+        fieldGroup : [{ qualifier : 'BILLHEADER' , position: 50 , label : 'Net Amount' }]
+  //          identification: [{ position: 50 , label : 'Net Amount' }]
+          }
+  NetAmount;
+  @UI:{ lineItem :[ { position: 60 , label : 'Currency' } ] ,
+    fieldGroup : [{ qualifier : 'BILLHEADER' , position: 60 , label : 'Currency' }],
+  //          identification: [{ position: 60 , label : 'Currency' }]
+             selectionField: [{  position: 40 }]     }
+  @Consumption.valueHelpDefinition: [
+     {
+       entity: {
+         name: 'i_currency',
+         element: 'Currency'
+       }
+     }
+   ]
+  @UI.textArrangement: #TEXT_ONLY
+  @Consumption.filter.mandatory: true
+  @Consumption.filter.selectionType: #SINGLE
+  @Consumption.filter.defaultValue: 'INR'
+  Currency;
+  //  @UI.textArrangement: #TEXT_ONLY
+  @Consumption.valueHelpDefinition: [
+   {
+     entity: {
+       name: 'ZRAP_VH_SALES_ORG',
+       element: 'SalesOrg'
+     }
+   }
+  ]
+  // LineItem - for Table &  identification - Object Page Detail
+  @UI:{ lineItem :[ { position: 70, label : 'Sales Organisation' } ] ,
+  fieldGroup : [{ qualifier : 'BILLHEADER' , position: 70 , label : 'Sales Organisation' }]
+  //          identification: [{ position: 70 , label : 'Sales Organisation' }]
+     }
+  SalesOrg;
+  // LineItem - for Table &  identification - Object Page Detail
+  @UI:{ lineItem :[ { position: 80, label : 'Release Status'  } ] ,
+  fieldGroup : [{ qualifier : 'BILLHEADER' , position: 80 , label : 'Release Status' }]
+  //          identification: [{ position: 80 , label : 'Release Status' }]
+           }
+  @Consumption.valueHelpDefinition: [
+    {
+      entity: {
+        name: 'ZRAP_VH_REL_STS',
+        element: 'ReleaseStatus'
+      }
+    }
+  ]
+  ReleaseStatus;
+  @UI:{ lineItem :[ { position: 85, label : 'Total Amount'  } ] ,
+  fieldGroup : [{ qualifier : 'BILLHEADER' , position: 85 , label : 'Total Amount' }]    }
+  TotalAmount;
+  //For object page detail not on list view[ table ]
+  //  @UI:{ identification: [{ position: 90 , label : 'Created By' }] }
+  @UI: { fieldGroup : [{ qualifier : 'BILLHEADRADMIN' , position: 10 , label : 'Created By' }] }
+  CreatedBy;
+  //For object page detail not on list view[ table ]
+  //  @UI:{ identification: [{ position: 100 , label : 'Created At' }] }
+  @UI: { fieldGroup : [{ qualifier : 'BILLHEADRADMIN' , position: 20 , label : 'Created At' }] }
+  CreatedAt;
+  //For object page detail not on list view[ table ]
+  //  @UI:{ identification: [{ position: 110 , label : 'Last Changed By' }] }
+  @UI: { fieldGroup : [{ qualifier : 'BILLHEADRADMIN' , position: 30 , label : 'Last Changed By' }] }
+  LastChangedBy;
+  //For object page detail not on list view[ table ]
+  //  @UI:{ identification: [{ position: 120 , label : 'Last Changed At' }] }
+  @UI: { fieldGroup : [{ qualifier : 'BILLHEADRADMIN' , position: 40 , label : 'Last Changed At' }] }
+  LastChangedAt;
+  //LocalLastChangedAt;
+  /* Associations */
+}

@@ -1,0 +1,33 @@
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Root view Entity For Bill hdr'
+//@Metadata.ignorePropagatedAnnotations: true
+define root view entity ZRAP_R_BILLHDR
+  as select from ZRAP_I_BILLHDR
+  composition [0..*] of ZRAP_R_BILLITM    as _Item
+  association [0..1] to ZRAP_VH_REL_STS   as _reltext  on $projection.ReleaseStatus = _reltext.ReleaseStatus
+  association [0..1] to ZRAP_VH_BillYTPE  as _billtext on $projection.BillType      = _billtext.BillingType
+  association [0..1] to ZRAP_VH_SALES_ORG as _salesorg on $projection.SalesOrg      = _salesorg.SalesOrg
+{
+  key BillId,
+      BillType,
+      BillDate,
+      CustomerId,
+      NetAmount,
+      Currency,
+      SalesOrg,
+      ReleaseStatus,
+      @Semantics.user.createdBy: true
+      CreatedBy,
+      @Semantics.systemDateTime.createdAt: true
+      CreatedAt,
+      @Semantics.user.lastChangedBy: true
+      LastChangedBy,
+      @Semantics.systemDateTime.lastChangedAt: true
+      LastChangedAt,
+      @Semantics.systemDateTime.localInstanceLastChangedAt: true
+      LocalLastChangedAt,
+      _Item, // Make association public
+      _reltext,
+      _billtext,
+      _salesorg
+}

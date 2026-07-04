@@ -1,0 +1,26 @@
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Billing Item'
+define view entity ZRAP_R_BILLITM
+  as select from ZRAP_I_BILLITM
+  association to parent ZRAP_R_BILLHDR as _Hdr on $projection.BillId = _Hdr.BillId
+{
+  key BillId,
+  key ItemNo,
+      MaterialId,
+      Description,
+      Quantity,
+      ItemAmount,
+      Currency,
+      Uom,
+      @Semantics.user.createdBy: true
+      CreatedBy,
+      @Semantics.systemDateTime.createdAt: true
+      CreatedAt,
+      @Semantics.user.lastChangedBy: true
+      LastChangedBy,
+      @Semantics.systemDateTime.lastChangedAt: true
+      LastChangedAt,
+      @Semantics.systemDateTime.localInstanceLastChangedAt: true
+      LocalLastChangedAt,
+      _Hdr
+}

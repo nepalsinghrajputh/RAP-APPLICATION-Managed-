@@ -1,0 +1,88 @@
+@Metadata.layer: #CORE
+@UI: { headerInfo : { typeName: 'Billing Item Detail' ,
+      typeNamePlural: 'Billing Item Details' , title : { type : #STANDARD , value: 'BillId'},
+       description :{ type : #STANDARD ,label : 'Item Number', value: 'ItemNo' } } }
+annotate entity ZRAP_C_BILLITM with
+{
+  //  @UI.facet: [{ id : 'BILLHEADER', purpose: #STANDARD ,
+  //    label : 'Billing Details'  , type : #IDENTIFICATION_REFERENCE , position:  10}]
+  @UI.facet: [{ id : 'BILLITEM', purpose: #STANDARD ,
+    label : 'Billing Item Details'  , type : #FIELDGROUP_REFERENCE , position:  10 ,targetQualifier : 'BILLITEM'},
+            {  id : 'BILLITEMADMIN',
+                purpose: #STANDARD , label : 'Administarion Details'  ,
+               type : #FIELDGROUP_REFERENCE  , position:  20,targetQualifier : 'BILLITEMADMIN'}]
+   // Each Element Details
+  @UI:{ lineItem :[ { position: 10, label : 'Billing Number'  } ] ,
+  fieldGroup : [{ qualifier : 'BILLITEM' , position: 10 , label : 'Billing Number'  } ]
+  //          identification: [{ position: 10 , label : 'Billing Number' }]
+          ,
+                             selectionField: [{  position: 10 }]}
+  BillId;
+  // Each Element Details
+  @UI:{ lineItem :[ { position: 20, label : 'Billing Item Number' } ] ,
+  fieldGroup : [{ qualifier : 'BILLITEM' , position: 20 , label : 'Billing Item Number'  } ]
+  //          identification: [{ position: 20 , label : 'Billing Item Number' }]
+          ,
+                             selectionField: [{  position: 20 }]}
+  ItemNo;
+  // Each Element Details
+  @UI:{ lineItem :[ { position: 30 , label : 'Material Number' } ]
+  ,fieldGroup : [{ qualifier : 'BILLITEM' , position: 30 , label : 'Material Number'  } ]}
+  //          identification: [{ position: 30 , label : 'Material Number' }]}
+  MaterialId;
+  // Each Element Details
+  @UI:{ lineItem :[ { position: 40, label : 'Descripition'  } ] ,
+  fieldGroup : [{ qualifier : 'BILLITEM' , position: 40 , label : 'Descripition'  } ]}
+  //          identification: [{ position: 40 , label : 'Descripition' }]}
+  Description;
+  // Each Element Details
+  @UI:{ lineItem :[ { position: 50, label : 'Quantity' } ]
+  ,fieldGroup : [{ qualifier : 'BILLITEM' , position: 50 , label : 'Quantity'  } ]}
+  //          identification: [{ position: 50 , label : 'Quantity' }]}
+  Quantity;
+  // Each Element Details
+  @UI:{ lineItem :[ { position: 60, label : 'Amount'  } ] ,
+  fieldGroup : [{ qualifier : 'BILLITEM' , position: 60 , label : 'Amount'  } ]}
+  //          identification: [{ position: 60 , label : 'Amount' }]}
+  ItemAmount;
+  @UI:{ lineItem :[ { position: 70, label : 'Currency' } ] ,
+  fieldGroup : [{ qualifier : 'BILLITEM' , position: 70 , label : 'Currency'  } ]}
+  //          identification: [{ position: 70 , label : 'Currency' }]}
+  @Consumption.valueHelpDefinition: [
+     {
+       entity: {
+         name: 'i_currency',
+         element: 'Currency'
+       }
+     }
+   ]
+  Currency;
+  @UI:{ lineItem :[ { position: 80, label : 'Unit Of Measure' } ] ,
+  fieldGroup : [{ qualifier : 'BILLITEM' , position: 80 , label : 'Unit Of Measure'  } ]}
+  //          identification: [{ position: 80 , label : 'Unit Of Measure' }]}
+  @Consumption.valueHelpDefinition: [
+    {
+      entity: {
+        name    : 'I_UnitOfMeasure',
+        element : 'UnitOfMeasure'
+      }
+    }
+  ]
+  Uom;
+  @UI:{ lineItem :[ { position: 90, label : 'Created By' } ] ,
+  fieldGroup : [{ qualifier : 'BILLITEMADMIN' , position: 10 , label : 'Created By'  } ]}
+  //          identification: [{ position: 90 , label : 'Created By' }]}
+  CreatedBy;
+  @UI:{ lineItem :[ { position: 100, label : 'Created At' } ] ,
+  fieldGroup : [{ qualifier : 'BILLITEMADMIN' , position: 20 , label : 'Created At'  } ]}
+  //          identification: [{ position: 100 , label : 'Created At' }]}
+  CreatedAt;
+  @UI:{ lineItem :[ { position: 110, label : 'Last Changed By' } ] ,
+  fieldGroup : [{ qualifier : 'BILLITEMADMIN' , position: 30 , label : 'Last Changed By'  } ]}
+  //          identification: [{ position: 110 , label : 'Last Changed By' }]}
+  LastChangedBy;
+  @UI:{ lineItem :[ { position: 120, label : 'Last Changed At' } ] ,
+  fieldGroup : [{ qualifier : 'BILLITEMADMIN' , position: 40 , label : 'Last Changed At'  } ]}
+  //          identification: [{ position: 120 , label : 'Last Changed At' }]}
+  LastChangedAt;
+}

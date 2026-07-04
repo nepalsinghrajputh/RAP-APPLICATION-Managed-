@@ -1,0 +1,14 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Release status Value Help'
+@Metadata.ignorePropagatedAnnotations: true
+@ObjectModel.resultSet.sizeCategory: #XS
+define view entity ZRAP_VH_SALES_ORG
+as select from DDCDS_CUSTOMER_DOMAIN_VALUE_T( p_domain_name:'ZRAP_DM_SALES_ORG'  )
+{
+@ObjectModel.text.element: ['Description']
+@UI.textArrangement: #TEXT_FIRST
+   key value_low as SalesOrg,
+     @Semantics.text: true
+    text as Description
+}

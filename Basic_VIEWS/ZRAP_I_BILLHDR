@@ -1,0 +1,21 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Basic View for Billing Header'
+//@Metadata.ignorePropagatedAnnotations: true
+define view entity ZRAP_I_BILLHDR
+  as select from zrap_bill_header
+{
+  key bill_id               as BillId,
+      bill_type             as BillType,
+      bill_date             as BillDate,
+      customer_id           as CustomerId,
+      net_amount            as NetAmount,
+      currency              as Currency,
+      sales_org             as SalesOrg,
+      release_status        as ReleaseStatus,
+      created_by            as CreatedBy,
+      created_at            as CreatedAt,
+      last_changed_by       as LastChangedBy,
+      last_changed_at       as LastChangedAt,
+      local_last_changed_at as LocalLastChangedAt
+}

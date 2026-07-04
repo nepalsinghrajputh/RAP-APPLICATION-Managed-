@@ -1,0 +1,21 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Basic View for Billing Item'
+//@Metadata.ignorePropagatedAnnotations: true
+define view entity ZRAP_I_BILLITM 
+as select from zrap_billitem
+{
+    key bill_id as BillId,
+    key item_no as ItemNo,
+    material_id as MaterialId,
+    description as Description,
+    quantity as Quantity,
+    item_amount as ItemAmount,
+    currency as Currency,
+    uom as Uom,
+    created_by as CreatedBy,
+    created_at as CreatedAt,
+    last_changed_by as LastChangedBy,
+    last_changed_at as LastChangedAt,
+    local_last_changed_at as LocalLastChangedAt
+}

@@ -1,0 +1,14 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Release status Value Help'
+@Metadata.ignorePropagatedAnnotations: true
+@ObjectModel.resultSet.sizeCategory: #XS
+define view entity ZRAP_VH_REL_STS
+as select from DDCDS_CUSTOMER_DOMAIN_VALUE_T( p_domain_name:'ZRAP_DM_RELEASE_STS'  )
+{
+@ObjectModel.text.element: ['Description']
+@UI.textArrangement: #TEXT_FIRST
+   key value_low as ReleaseStatus,
+     @Semantics.text: true
+    text as Description
+}

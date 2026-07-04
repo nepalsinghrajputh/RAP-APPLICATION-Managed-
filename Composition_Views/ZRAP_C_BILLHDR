@@ -1,0 +1,40 @@
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Consumpittion View for Header'
+@Metadata.allowExtensions: true
+define root view entity ZRAP_C_BILLHDR
+  provider contract transactional_query
+  as projection on ZRAP_R_BILLHDR
+{
+  key     BillId,
+          @ObjectModel.text.element: [ 'BillTypeText' ]
+          @UI.textArrangement: #TEXT_FIRST
+          BillType,
+          _billtext.Description as BillTypeText,
+          BillDate,
+          CustomerId,
+          NetAmount,
+          Currency,
+           @ObjectModel.text.element: [ 'SalesOrgText' ]
+          @UI.textArrangement: #TEXT_FIRST         
+          SalesOrg,
+          _salesorg.Description as SalesOrgText,
+          @Semantics.amount.currencyCode: 'Currency'
+          @EndUserText.label: 'Total Amount'
+          @ObjectModel.sort.transformedBy: 'ABAP:ZRAPCL_SO_VIRTUAL_EXIT'
+          @ObjectModel.virtualElementCalculatedBy: 'ABAP:ZRAPCL_SO_VIRTUAL_EXIT'
+  virtual TotalAmount : abap.curr(15,2),
+          @ObjectModel.text.element: [ 'ReleaseStatusText' ]
+          @UI.textArrangement: #TEXT_FIRST
+          ReleaseStatus,
+          _reltext.Description  as ReleaseStatusText,
+          CreatedBy,
+          CreatedAt,
+          LastChangedBy,
+          LastChangedAt,
+          LocalLastChangedAt,
+          /* Associations */
+          _Item : redirected to composition child ZRAP_C_BILLITM,
+          _reltext,
+          _billtext,
+          _salesorg
+}

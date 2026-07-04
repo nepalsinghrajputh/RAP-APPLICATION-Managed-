@@ -1,0 +1,72 @@
+CLASS zrapcl_so_virtual_exit DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    INTERFACES if_sadl_exit .
+    INTERFACES if_sadl_exit_sort_transform .
+    INTERFACES if_sadl_exit_calc_element_read .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
+
+
+
+CLASS zrapcl_so_virtual_exit IMPLEMENTATION.
+
+
+  METHOD if_sadl_exit_calc_element_read~calculate.
+    "Loop over all requested virtual elements
+    LOOP AT it_requested_calc_elements INTO DATA(lv_virtual_field_name).
+
+      "Loop over each row returned by the main query
+      LOOP AT ct_calculated_data ASSIGNING FIELD-SYMBOL(<ls_calculated_row>).
+
+        DATA(lv_index) = sy-tabix.
+
+        "Assign the virtual field dynamically
+        ASSIGN COMPONENT lv_virtual_field_name
+          OF STRUCTURE <ls_calculated_row>
+          TO FIELD-SYMBOL(<lv_total_amount>).
+
+        "Read corresponding original header data
+        DATA(ls_header_data) =
+          CORRESPONDING zrap_r_billhdr( it_original_data[ lv_index ] ).
+
+        "Read associated item entities for current Billing Document
+        READ ENTITIES OF zrap_r_billhdr
+          ENTITY BillHdr
+          BY \_Item
+          ALL FIELDS
+          WITH VALUE #( ( BillId = ls_header_data-BillId ) )
+          RESULT DATA(lt_item_data).
+
+        "Initialize total amount
+        CLEAR <lv_total_amount>.
+
+        "Sum all ItemAmount values
+        LOOP AT lt_item_data INTO DATA(ls_item_row).
+          <lv_total_amount> =
+            <lv_total_amount> + ls_item_row-ItemAmount.
+        ENDLOOP.
+
+      ENDLOOP.
+
+    ENDLOOP.
+  ENDMETHOD.
+
+
+  METHOD if_sadl_exit_calc_element_read~get_calculation_info.
+  ENDMETHOD.
+
+
+  METHOD if_sadl_exit_sort_transform~map_element.
+    CASE iv_element.
+      WHEN 'TOTALAMOUNT'.
+        " Map the UI sort request to the database field
+        APPEND VALUE #( name = 'NETAMOUNT' ) TO et_sort_elements.
+    ENDCASE.
+  ENDMETHOD.
+ENDCLASS.

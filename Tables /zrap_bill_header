@@ -1,0 +1,24 @@
+@EndUserText.label : 'Billing Header'
+@AbapCatalog.enhancement.category : #NOT_EXTENSIBLE
+@AbapCatalog.tableCategory : #TRANSPARENT
+@AbapCatalog.deliveryClass : #A
+@AbapCatalog.dataMaintenance : #RESTRICTED
+define table zrap_bill_header {
+
+  key client            : abap.clnt not null;
+  key bill_id           : abap.numc(10) not null;
+  bill_type             : zrap_de_billtype;
+  bill_date             : abap.dats;
+  customer_id           : kunnr;
+  @Semantics.amount.currencyCode : 'zrap_bill_header.currency'
+  net_amount            : abap.curr(15,2);
+  currency              : waers;
+  sales_org             : vkorg;
+  release_status        : zrap_de_release_sts;
+  created_by            : syuname;
+  created_at            : timestamp;
+  last_changed_by       : syuname;
+  last_changed_at       : abp_lastchange_tstmpl;
+  local_last_changed_at : abp_locinst_lastchange_tstmpl;
+
+}

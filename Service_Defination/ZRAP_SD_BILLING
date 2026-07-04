@@ -1,0 +1,5 @@
+@EndUserText.label: 'Service Defination for Billing'
+define service ZRAP_SD_BILLING {
+  expose ZRAP_C_BILLHDR as BillingHeader;
+  expose ZRAP_C_BILLITM as BillingItem;
+}

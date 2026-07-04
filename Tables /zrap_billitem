@@ -1,0 +1,25 @@
+@EndUserText.label : 'Billing Item'
+@AbapCatalog.enhancement.category : #NOT_EXTENSIBLE
+@AbapCatalog.tableCategory : #TRANSPARENT
+@AbapCatalog.deliveryClass : #A
+@AbapCatalog.dataMaintenance : #RESTRICTED
+define table zrap_billitem {
+
+  key client            : abap.clnt not null;
+  key bill_id           : abap.numc(10) not null;
+  key item_no           : abap.numc(6) not null;
+  material_id           : matnr;
+  description           : abap.char(40);
+  @Semantics.quantity.unitOfMeasure : 'zrap_billitem.uom'
+  quantity              : abap.quan(13,3);
+  @Semantics.amount.currencyCode : 'zrap_billitem.currency'
+  item_amount           : abap.curr(15,2);
+  currency              : waers;
+  uom                   : meins;
+  created_by            : syuname;
+  created_at            : timestamp;
+  last_changed_by       : syuname;
+  last_changed_at       : abp_lastchange_tstmpl;
+  local_last_changed_at : abp_locinst_lastchange_tstmpl;
+
+}

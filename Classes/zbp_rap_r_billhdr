@@ -1,0 +1,690 @@
+CLASS zbp_rap_r_billhdr DEFINITION PUBLIC ABSTRACT FINAL FOR BEHAVIOR OF zrap_r_billhdr.
+ENDCLASS.
+
+CLASS zbp_rap_r_billhdr IMPLEMENTATION.
+ENDCLASS.
+
+// Local classes --
+CLASS lhc_billitem DEFINITION INHERITING FROM cl_abap_behavior_handler.
+
+  PRIVATE SECTION.
+
+    METHODS determineitem_desc FOR DETERMINE ON MODIFY
+      IMPORTING keys FOR BillItem~determineitem_desc.
+    METHODS validatequantity FOR VALIDATE ON SAVE
+      IMPORTING keys FOR BillItem~validatequantity.
+    METHODS validateamt FOR VALIDATE ON SAVE
+      IMPORTING keys FOR BillItem~validateamt.
+
+ENDCLASS.
+
+CLASS lhc_billitem IMPLEMENTATION.
+
+  METHOD determineitem_desc.
+    "Read the BillItem entities based on the keys provided and store them in a local table lt_billing_items
+    READ ENTITIES OF zrap_r_billhdr IN LOCAL MODE
+      ENTITY BillItem
+      FIELDS ( BillId ItemNo MaterialId )
+      WITH CORRESPONDING #( keys )
+      RESULT DATA(lt_billing_items).
+
+    " Modify Description field of the BillItem entity based on the MaterialId field of the BillItem entity
+    MODIFY ENTITIES OF zrap_r_billhdr IN LOCAL MODE
+    ENTITY BillItem
+    UPDATE FIELDS ( Description )
+    WITH VALUE #(
+        FOR ls_item IN lt_billing_items
+        (
+          %tky        = ls_item-%tky
+          Description = |Item for { ls_item-MaterialId }|
+        )
+      ).
+
+  ENDMETHOD.
+
+  METHOD validatequantity.
+*  *  Validation Triggers in Save sequence and can de done on particular fields
+    "Read Header data for the given keys to validate the net amount
+    READ ENTITIES OF zrap_r_billhdr IN LOCAL MODE
+       ENTITY BillItem
+       ALL FIELDS WITH
+       CORRESPONDING #( keys )
+       RESULT DATA(lt_result).
+    "Validate the net amount and currency for each header record and set the message accordingly
+    LOOP AT lt_result INTO DATA(ls_result).
+
+      IF ls_result-Uom IS INITIAL AND ls_result-Quantity IS NOT INITIAL.
+*      Fill the failed-billhdr table with the keys of the failed records and
+*      set the message for the failed records to be reported back to the framework
+        APPEND VALUE #( %tky = ls_result-%tky )
+          TO failed-billitem.
+
+        APPEND VALUE #(
+          %tky = keys[ 1 ]-%tky
+          %element-uom = if_abap_behv=>mk-on   "Highlight the currency field in the UI
+          %msg = new_message_with_text(
+                    severity = if_abap_behv_message=>severity-error
+                    text     = 'Please maintain Unit Of Measure'
+                 )
+        ) TO reported-billitem.
+
+      ENDIF.
+
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD validateamt.
+*  *  Validation Triggers in Save sequence and can be done on particular fields
+    "Read Header data for the given keys to validate the net amount
+    READ ENTITIES OF zrap_r_billhdr IN LOCAL MODE
+    ENTITY BillItem
+       ALL FIELDS WITH
+       CORRESPONDING #( keys )
+       RESULT DATA(lt_result).
+    "Validate the net amount and currency for each header record and set the message accordingly
+    LOOP AT lt_result INTO DATA(ls_result).
+
+      IF ls_result-Currency IS INITIAL AND ls_result-ItemAmount IS NOT INITIAL.
+*      Fill the failed-billhdr table with the keys of the failed records and
+*      set the message for the failed records to be reported back to the framework
+        APPEND VALUE #( %tky = ls_result-%tky )
+          TO failed-billitem.
+
+        APPEND VALUE #(
+          %tky = keys[ 1 ]-%tky
+          %element-currency = if_abap_behv=>mk-on   "Highlight the currency field in the UI
+          %msg = new_message_with_text(
+                    severity = if_abap_behv_message=>severity-error
+                    text     = 'Please maintain currency'
+                 )
+        ) TO reported-billitem.
+
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS lhc_BillHdr DEFINITION INHERITING FROM cl_abap_behavior_handler.
+  PRIVATE SECTION.
+
+    METHODS get_instance_authorizations FOR INSTANCE AUTHORIZATION
+      IMPORTING keys REQUEST requested_authorizations FOR BillHdr RESULT result.
+
+    METHODS get_global_authorizations FOR GLOBAL AUTHORIZATION
+      IMPORTING REQUEST requested_authorizations FOR BillHdr RESULT result.
+
+    METHODS copy_instance FOR MODIFY
+      IMPORTING keys FOR ACTION BillHdr~copy_instance.
+
+    METHODS CreateSalesDoc FOR MODIFY
+      IMPORTING keys FOR ACTION BillHdr~CreateSalesDoc.
+
+    METHODS release_doc FOR MODIFY
+      IMPORTING keys FOR ACTION BillHdr~release_doc RESULT result.
+
+    METHODS UpdateBillingdate FOR MODIFY
+      IMPORTING keys FOR ACTION BillHdr~UpdateBillingdate RESULT result.
+    METHODS validatenetamount FOR VALIDATE ON SAVE
+      IMPORTING keys FOR BillHdr~validatenetamount.
+*    METHODS precheck_create FOR PRECHECK
+*      IMPORTING entities FOR CREATE BillHdr.
+*
+*    METHODS precheck_update FOR PRECHECK
+*      IMPORTING entities FOR UPDATE BillHdr.
+    METHODS get_instance_features FOR INSTANCE FEATURES
+      IMPORTING keys REQUEST requested_features FOR BillHdr RESULT result.
+
+    METHODS get_global_features FOR GLOBAL FEATURES
+      IMPORTING REQUEST requested_features FOR BillHdr RESULT result.
+
+ENDCLASS.
+
+CLASS lhc_BillHdr IMPLEMENTATION.
+
+  METHOD get_instance_authorizations.
+
+    READ ENTITIES OF zrap_r_billhdr IN LOCAL MODE
+     ENTITY BillHdr
+     ALL FIELDS
+     WITH CORRESPONDING #( keys )
+     RESULT DATA(lt_result).
+   "Setting Authorization if the record is release then not allowing to delete
+*    IF requested_authorizations-%update = if_abap_behv=>mk-on.
+*      " Authorization check
+*      DATA(lv_update_allowed) = abap_true.
+*    ENDIF.
+    IF requested_authorizations-%update = if_abap_behv=>mk-on.
+      " Authorization check
+      DATA(lv_update_allowed) = abap_true.
+    ENDIF.
+
+    result = VALUE #(
+      FOR ls_result IN lt_result (
+        %tky = ls_result-%tky
+        %delete =  COND #(
+          WHEN ls_result-ReleaseStatus = 'D'
+           AND lv_update_allowed IS NOT INITIAL
+            THEN if_abap_behv=>auth-allowed
+          ELSE if_abap_behv=>auth-unauthorized
+        )
+
+*        %update = COND #(
+*          WHEN ls_result-ReleaseStatus = 'D'
+*           AND lv_update_allowed IS NOT INITIAL
+*            THEN if_abap_behv=>auth-allowed
+*          ELSE if_abap_behv=>auth-unauthorized
+*        )
+      )
+    ).
+
+  ENDMETHOD.
+
+  METHOD get_global_authorizations.
+*    DATA(lv_time1) = CONV t( '060000' ).
+*    DATA(lv_time2) = CONV t( '090000' ).
+*
+*    DATA(lv_curr_time) = cl_abap_context_info=>get_system_time( ).
+*
+*    DATA(lv_auth) = COND #(
+*      WHEN lv_curr_time GT lv_time1
+*       AND lv_curr_time LE lv_time2
+*        THEN if_abap_behv=>auth-allowed
+*      ELSE if_abap_behv=>auth-unauthorized
+*    ).
+*
+*    result = VALUE #(
+*      %create = lv_auth
+*    ).
+  ENDMETHOD.
+
+  METHOD copy_instance.
+    CONSTANTS:c_inr(3) TYPE c VALUE 'INR',
+              c_d(1)   TYPE c VALUE 'D'.
+    DATA(lv_cid) = keys[ 1 ]-%cid.
+    DATA: ls_create TYPE STRUCTURE FOR  CREATE zrap_r_billhdr.
+    DATA: lt_create TYPE TABLE FOR CREATE zrap_r_billhdr .
+
+    "Getting the maximum bill id from the existing bill header table to create a new bill header entry with a unique bill id.
+    SELECT bill_id FROM zrap_bill_header INTO TABLE @DATA(lt_bill).
+    SELECT MAX( bill_id ) FROM zrap_bill_header INTO @DATA(lv_max_bill).
+    IF sy-subrc = 0.
+      lv_max_bill = lv_max_bill + 1.
+    	ELSE.
+      lv_max_bill = 1.
+    ENDIF.
+
+    "Filling the data for the new document to be created based on the existing document data
+    ls_create-%data = VALUE #(      BillId          = lv_max_bill
+                                    BillDate        = cl_abap_context_info=>get_system_date( )
+                                    Currency        = c_inr
+                                    ReleaseStatus   = c_d ).
+    ls_create-BillId = lv_max_bill.
+    ls_create-%control = VALUE #( BillId = if_abap_behv=>mk-on
+                            BillDate = if_abap_behv=>mk-on
+                            Currency = if_abap_behv=>mk-on
+                            ReleaseStatus = if_abap_behv=>mk-on ).
+    ls_create-%key-BillId =    lv_max_bill.
+    ls_create-%cid = lv_cid.
+    APPEND  ls_create TO  lt_create.
+
+    "Creating the new document in the database using the MODIFY ENTITIES statement and setting result to UI with Mapped .
+    MODIFY ENTITIES OF zrap_r_billhdr IN LOCAL MODE
+    ENTITY BillHdr
+    CREATE
+    FIELDS ( BillId BillDate Currency ReleaseStatus BillType CustomerId NetAmount SalesOrg )
+    WITH lt_create
+    MAPPED   mapped
+    REPORTED reported
+    FAILED   failed.
+
+  ENDMETHOD.
+
+  METHOD CreateSalesDoc.
+    DATA:
+      bill_header_create TYPE TABLE FOR CREATE zrap_r_billhdr,
+      response_data      TYPE TABLE FOR READ RESULT zrap_r_billhdr.
+
+    "Keys is a table of the keys of the entities to be created. We will loop through each key and create a bill header entry for each one.
+    LOOP AT keys INTO DATA(key).
+
+      " Create bill header entry
+      APPEND VALUE #(
+        %cid     = key-%cid
+        BillId   = key-%param-BillID
+        BillType = key-%param-BillType
+        BillDate = cl_abap_context_info=>get_system_date( )
+      ) TO bill_header_create.
+
+    ENDLOOP.
+
+    "Create the bill header entries in the database using the MODIFY ENTITIES statement.
+    "This will create the entries in the database and return the mapped, failed, and reported data.
+    MODIFY ENTITIES OF zrap_r_billhdr IN LOCAL MODE
+      ENTITY BillHdr
+      CREATE FIELDS ( BillId BillType BillDate )
+      WITH bill_header_create
+      MAPPED DATA(mapped_create)
+      FAILED DATA(failed_create)
+      REPORTED DATA(reported_create).
+
+    "Mapping the created data to the mapped-soheader variable to be returned to the framework.
+    mapped-billhdr = mapped_create-billhdr.
+
+  ENDMETHOD.
+
+  METHOD release_doc.
+    CONSTANTS: c_r(1) TYPE c VALUE 'R'.
+    "Modifying the release status of the document to 'R' for released
+    MODIFY ENTITIES OF zrap_r_billhdr IN LOCAL MODE
+      ENTITY BillHdr
+      UPDATE FROM VALUE #(
+        FOR key IN keys (
+         %tky = key-%tky
+          ReleaseStatus = c_r
+          %control-ReleaseStatus = if_abap_behv=>mk-on
+        )
+      )
+      MAPPED    DATA(lt_mapped)  " mapped data for the modified entities
+      FAILED   DATA(lt_failed)   " Message handling for failed modifications
+      REPORTED DATA(lt_reported)." reporting the modified entities
+
+    "Giving back the result of the modification to the framework
+    READ ENTITIES OF  zrap_r_billhdr  IN LOCAL MODE
+      ENTITY BillHdr
+      ALL FIELDS WITH CORRESPONDING #( keys )
+      RESULT DATA(lt_result).
+    "With the result of the read, we can now prepare the result for the framework
+    result = VALUE #(
+      FOR ls_res IN lt_result (
+        %tky = ls_res-%tky
+        %param = ls_res
+      )
+    ).
+
+
+    "Setting the message for the modified entities to be reported back to the framework
+    DATA lt_reported_new LIKE reported-billhdr.
+
+    lt_reported_new = VALUE #(
+      FOR ls_key IN keys (
+        %tky = ls_key-%tky
+        %msg = new_message_with_text(
+                  severity = if_abap_behv_message=>severity-success
+                  text     = 'Billing Document is released'
+               )
+      )
+    ).
+
+    APPEND LINES OF lt_reported_new TO reported-billhdr.
+  ENDMETHOD.
+
+  METHOD UpdateBillingdate.
+    "Modifying the billing date of the document to the current system date
+    MODIFY ENTITIES OF zrap_r_billhdr IN LOCAL MODE
+      ENTITY BillHdr
+      UPDATE FROM VALUE #(
+        FOR key IN keys (
+         %tky = key-%tky
+          BillDate = cl_abap_context_info=>get_system_date( )
+          %control-BillDate = if_abap_behv=>mk-on
+        )
+      )
+      MAPPED    DATA(lt_mapped)  " mapped data for the modified entities
+      FAILED   DATA(lt_failed)   " Message handling for failed modifications
+      REPORTED DATA(lt_reported)." reporting the modified entities
+
+    "Giving back the result of the modification to the framework
+    READ ENTITIES OF zrap_r_billhdr  IN LOCAL MODE
+      ENTITY BillHdr
+      ALL FIELDS WITH CORRESPONDING #( keys )
+      RESULT DATA(lt_result).
+    "With the result of the read, we can now prepare the result for the framework
+    result = VALUE #(
+      FOR ls_res IN lt_result (
+        %tky = ls_res-%tky
+        %param = ls_res
+      )
+    ).
+
+
+    "Setting the message for the modified entities to be reported back to the framework
+    DATA lt_reported_new LIKE reported-billhdr.
+
+    lt_reported_new = VALUE #(
+      FOR ls_key IN keys (
+        %tky = ls_key-%tky
+        %msg = new_message_with_text(
+                  severity = if_abap_behv_message=>severity-success
+                  text     = 'Billing Date is updated'
+               )
+      )
+    ).
+
+    APPEND LINES OF lt_reported_new TO reported-billhdr.
+  ENDMETHOD.
+
+  METHOD validatenetamount.
+*  Validation Triggers in Save sequence and can de done on particular fields
+    "Read Header data for the given keys to validate the net amount
+    READ ENTITIES OF zrap_r_billhdr IN LOCAL MODE
+       ENTITY BillHdr
+       ALL FIELDS WITH
+       CORRESPONDING #( keys )
+       RESULT DATA(lt_result).
+    "Validate the net amount and currency for each header record and set the message accordingly
+    LOOP AT lt_result INTO DATA(ls_result).
+
+      IF ls_result-Currency IS INITIAL AND ls_result-NetAmount IS NOT INITIAL.
+*      Fill the failed-billhdr table with the keys of the failed records and
+*      set the message for the failed records to be reported back to the framework
+        APPEND VALUE #( %tky = ls_result-%tky )
+          TO failed-billhdr.
+
+        APPEND VALUE #(
+          %tky = keys[ 1 ]-%tky
+          %element-currency = if_abap_behv=>mk-on   "Highlight the currency field in the UI
+          %msg = new_message_with_text(
+                    severity = if_abap_behv_message=>severity-error
+                    text     = 'Please maintain currency'
+                 )
+        ) TO reported-billhdr.
+
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
+*  METHOD precheck_create.
+*    "Precheck Trigger for the Actions and Triggers in the Transactional Phase
+*    DATA lv_cust(6) TYPE n.
+*    LOOP AT entities ASSIGNING FIELD-SYMBOL(<lfs_entites>).
+*      IF <lfs_entites>-CustomerId IS NOT INITIAL.
+*
+*        lv_cust = <lfs_entites>-CustomerId.
+*
+*        SELECT SINGLE * FROM /DMO/I_Customer
+*          WHERE CustomerID = @lv_cust
+*          INTO @DATA(ls_customer).
+*
+*        IF sy-subrc NE 0.
+*          "for Create we don't have the %tky so we use %CID
+*          APPEND VALUE #( %cid = <lfs_entites>-%cid ) TO failed-billhdr.
+*
+*          APPEND VALUE #(
+*            %cid = <lfs_entites>-%cid
+*            %element-customerid = if_abap_behv=>mk-on
+*            %msg = new_message_with_text(
+*                      severity = if_abap_behv_message=>severity-error
+*                      text     = 'The customer id is not valid'
+*                   )
+*          ) TO reported-billhdr.
+*
+*        ENDIF.
+*      ELSE.
+*        "for Create we don't have the %tky so we use %CID
+*        APPEND VALUE #( %cid = <lfs_entites>-%cid ) TO failed-billhdr.
+*
+*        APPEND VALUE #(
+*          %cid = <lfs_entites>-%cid
+*          %element-customerid = if_abap_behv=>mk-on
+*          %msg = new_message_with_text(
+*                    severity = if_abap_behv_message=>severity-error
+*                    text     = 'The customer id is mandatory'
+*                 )
+*        ) TO reported-billhdr.
+*      ENDIF.
+*      IF <lfs_entites>-BillType IS NOT INITIAL.
+*        SELECT *  FROM ddcds_customer_domain_value_t(
+*         p_domain_name = 'ZRAP_DM_BILLTYPE' )  INTO TABLE @DATA(lt_billing).
+*        IF line_exists( lt_billing[ value_low = <lfs_entites>-BillType ] ).
+*        ELSE.
+*          "for Update  we will have %tky which will unique for each transaction
+*          APPEND VALUE #( %cid = <lfs_entites>-%cid ) TO failed-billhdr.
+*
+*          APPEND VALUE #(
+*            %cid = <lfs_entites>-%cid
+*            %element-billtype = if_abap_behv=>mk-on
+*            %msg = new_message_with_text(
+*                      severity = if_abap_behv_message=>severity-error
+*                      text     = 'Billing Type is not valid'
+*                   )
+*          ) TO reported-billhdr.
+*
+*        ENDIF.
+*      ELSE.
+*        APPEND VALUE #( %cid = <lfs_entites>-%cid ) TO failed-billhdr.
+*
+*        APPEND VALUE #(
+*          %cid = <lfs_entites>-%cid
+*          %element-billtype = if_abap_behv=>mk-on
+*          %msg = new_message_with_text(
+*                    severity = if_abap_behv_message=>severity-error
+*                    text     = 'Billing Type is mandatoy'
+*                 )
+*        ) TO reported-billhdr.
+*      ENDIF.
+*      IF <lfs_entites>-SalesOrg IS NOT INITIAL.
+*        SELECT *  FROM ddcds_customer_domain_value_t(
+*         p_domain_name = 'ZRAP_DM_SALES_ORG' )  INTO TABLE @DATA(lt_sales_org).
+*        IF line_exists( lt_sales_org[ value_low = <lfs_entites>-SalesOrg ] ).
+*        ELSE.
+*          "for Update  we will have %tky which will unique for each transaction
+*          APPEND VALUE #( %cid = <lfs_entites>-%cid ) TO failed-billhdr.
+*
+*          APPEND VALUE #(
+*            %cid = <lfs_entites>-%cid
+*            %element-salesorg = if_abap_behv=>mk-on
+*            %msg = new_message_with_text(
+*                      severity = if_abap_behv_message=>severity-error
+*                      text     = 'Sales Org is not valid'
+*                   )
+*          ) TO reported-billhdr.
+*
+*        ENDIF.
+*      ELSE.
+*        "for Update  we will have %tky which will unique for each transaction
+*        APPEND VALUE #( %cid = <lfs_entites>-%cid ) TO failed-billhdr.
+*
+*        APPEND VALUE #(
+*          %cid = <lfs_entites>-%cid
+*          %element-salesorg = if_abap_behv=>mk-on
+*          %msg = new_message_with_text(
+*                    severity = if_abap_behv_message=>severity-error
+*                    text     = 'Sales Org is mandatory'
+*                 )
+*        ) TO reported-billhdr.
+*      ENDIF.
+*    ENDLOOP.
+*  ENDMETHOD.
+*
+*  METHOD precheck_update.
+*    "Precheck Trigger for the Actions and Triggers in the Transactional Phase
+*    DATA lv_cust(6) TYPE n.
+*    LOOP AT entities ASSIGNING FIELD-SYMBOL(<lfs_entites>).
+*      IF <lfs_entites>-CustomerId IS NOT INITIAL.
+*
+*        lv_cust = <lfs_entites>-CustomerId.
+*
+*        SELECT SINGLE * FROM /DMO/I_Customer
+*          WHERE CustomerID = @lv_cust
+*          INTO @DATA(ls_customer).
+*
+*        IF sy-subrc NE 0.
+*          "for Update  we will have %tky which will unique for each transaction
+*          APPEND VALUE #( %tky = <lfs_entites>-%tky ) TO failed-billhdr.
+*
+*          APPEND VALUE #(
+*            %tky = <lfs_entites>-%tky
+*            %element-customerid = if_abap_behv=>mk-on
+*            %msg = new_message_with_text(
+*                      severity = if_abap_behv_message=>severity-error
+*                      text     = 'The customer id is not valid'
+*                   )
+*          ) TO reported-billhdr.
+*
+*        ENDIF.
+*      ELSE.
+*        "for Update  we will have %tky which will unique for each transaction
+*        APPEND VALUE #( %tky = <lfs_entites>-%tky ) TO failed-billhdr.
+*
+*        APPEND VALUE #(
+*          %tky = <lfs_entites>-%tky
+*          %element-customerid = if_abap_behv=>mk-on
+*          %msg = new_message_with_text(
+*                    severity = if_abap_behv_message=>severity-error
+*                    text     = 'The customer id is mandatory'
+*                 )
+*        ) TO reported-billhdr.
+*      ENDIF.
+*
+*      IF <lfs_entites>-BillType IS NOT INITIAL.
+*        SELECT *  FROM ddcds_customer_domain_value_t(
+*         p_domain_name = 'ZRAP_DM_BILLTYPE' )  INTO TABLE @DATA(lt_billing).
+*        IF line_exists( lt_billing[ value_low = <lfs_entites>-BillType ] ).
+*        ELSE.
+*          "for Update  we will have %tky which will unique for each transaction
+*          APPEND VALUE #( %tky = <lfs_entites>-%tky ) TO failed-billhdr.
+*
+*          APPEND VALUE #(
+*            %tky = <lfs_entites>-%tky
+*            %element-customerid = if_abap_behv=>mk-on
+*            %msg = new_message_with_text(
+*                      severity = if_abap_behv_message=>severity-error
+*                      text     = 'Billing Type is not valid'
+*                   )
+*          ) TO reported-billhdr.
+*
+*        ENDIF.
+*      ELSE.
+*        "for Update  we will have %tky which will unique for each transaction
+*        APPEND VALUE #( %tky = <lfs_entites>-%tky ) TO failed-billhdr.
+*
+*        APPEND VALUE #(
+*          %tky = <lfs_entites>-%tky
+*          %element-customerid = if_abap_behv=>mk-on
+*          %msg = new_message_with_text(
+*                    severity = if_abap_behv_message=>severity-error
+*                    text     = 'Billing Type is mandatory'
+*                 )
+*        ) TO reported-billhdr.
+*      ENDIF.
+*      IF <lfs_entites>-SalesOrg IS NOT INITIAL.
+*        SELECT *  FROM ddcds_customer_domain_value_t(
+*         p_domain_name = 'ZRAP_DM_SALES_ORG' )  INTO TABLE @DATA(lt_sales_org).
+*        IF line_exists( lt_sales_org[ value_low = <lfs_entites>-SalesOrg ] ).
+*        ELSE.
+*          "for Update  we will have %tky which will unique for each transaction
+*          APPEND VALUE #( %tky = <lfs_entites>-%tky ) TO failed-billhdr.
+*
+*          APPEND VALUE #(
+*            %tky = <lfs_entites>-%tky
+*            %element-salesorg = if_abap_behv=>mk-on
+*            %msg = new_message_with_text(
+*                      severity = if_abap_behv_message=>severity-error
+*                      text     = 'Sales Org is not valid'
+*                   )
+*          ) TO reported-billhdr.
+*
+*        ENDIF.
+*      ELSE.
+*        "for Update  we will have %tky which will unique for each transaction
+*        APPEND VALUE #( %tky = <lfs_entites>-%tky ) TO failed-billhdr.
+*
+*        APPEND VALUE #(
+*          %tky = <lfs_entites>-%tky
+*          %element-salesorg = if_abap_behv=>mk-on
+*          %msg = new_message_with_text(
+*                    severity = if_abap_behv_message=>severity-error
+*                    text     = 'Sales Org is mandatory'
+*                 )
+*        ) TO reported-billhdr.
+*      ENDIF.
+*
+*    ENDLOOP.
+*  ENDMETHOD.
+
+  METHOD get_instance_features.
+    "Read the data
+    READ ENTITIES OF zrap_r_billhdr  IN LOCAL MODE
+      ENTITY BillHdr
+      ALL FIELDS WITH CORRESPONDING #( keys )
+      RESULT DATA(lt_result).
+    "with this sending features that in Release = D then EDIT should enabled or it will be disabled or not shown in UI
+    result = VALUE #(
+      FOR ls_result IN lt_result (
+        %tky = ls_result-%tky
+
+        %features-%update = COND #(
+          WHEN ls_result-ReleaseStatus = 'D'
+          THEN if_abap_behv=>fc-o-enabled
+          ELSE if_abap_behv=>fc-o-disabled
+        )
+*        %features-%delete = COND #(
+*          WHEN ls_result-ReleaseStatus = 'D'
+*          THEN if_abap_behv=>fc-o-enabled
+*          ELSE if_abap_behv=>fc-o-disabled
+*        )
+
+*        %features-%field-SalesOrg = COND #(
+*          WHEN ls_result-Currency = 'INR'
+*            THEN if_abap_behv=>fc-f-read_only     "This line will field readonly - Prefectly UI will work in OData V4
+*          ELSE if_abap_behv=>fc-f-unrestricted
+*        )
+      )
+    ).
+  ENDMETHOD.
+
+  METHOD get_global_features.
+*    "implementing the Create Action shuold be enabled between particular time
+*    DATA(lv_time1) = CONV t( '060000' ).
+*    DATA(lv_time2) = CONV t( '090000' ).
+*
+*    DATA(lv_curr_time) = cl_abap_context_info=>get_system_time( ).
+*
+*    DATA(lv_feature) = COND #(
+*      WHEN lv_curr_time GT lv_time1
+*       AND lv_curr_time LE lv_time2
+*        THEN if_abap_behv=>fc-o-enabled
+*      ELSE if_abap_behv=>fc-o-disabled
+*    ).
+*
+*    result = VALUE #(
+*      %create = lv_feature
+*      %action-CreateSalesDoc = lv_feature
+*    ).
+*
+*    IF requested_features-%create IS NOT INITIAL.
+*
+*      IF result-%create = if_abap_behv=>fc-o-disabled.
+*
+*        APPEND VALUE #(
+*          %msg = new_message_with_text(
+*                   text = 'Create is not enabled between 6 and 9 AM'
+*                   severity = if_abap_behv_message=>severity-error )
+*          %global = if_abap_behv=>mk-on
+*        ) TO reported-billhdr.
+*
+*      ENDIF.
+*
+*    ENDIF.
+*    IF requested_features-%action-CreateSalesDoc IS NOT INITIAL.
+*
+*      IF result-%action-CreateSalesDoc = if_abap_behv=>fc-o-disabled.
+*
+*        APPEND VALUE #(
+*          %msg = new_message_with_text(
+*                   text = 'Create is not enabled between 6 and 9 AM'
+*                   severity = if_abap_behv_message=>severity-error )
+*          %global = if_abap_behv=>mk-on
+*        ) TO reported-billhdr.
+*
+*      ENDIF.
+*
+*    ENDIF.
+  ENDMETHOD.
+
+ENDCLASS.

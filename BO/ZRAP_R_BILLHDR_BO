@@ -1,0 +1,76 @@
+managed implementation in class zbp_rap_r_billhdr unique;
+strict ( 2 );
+
+define behavior for ZRAP_R_BILLHDR alias BillHdr
+persistent table zrap_bill_header
+lock master
+authorization master ( instance, global )
+//etag master <field_name>
+{
+  create ( authorization : global, features : global );// precheck, implemented in BDEF PROJECTION
+  update ( features : instance ); //// precheck, implemented in BDEF PROJECTION
+  delete ( features : instance );
+  field ( features : instance ) SalesOrg;
+  field ( readonly : update ) BillId;
+  field ( readonly ) ReleaseStatus, CreatedBy, CreatedAt, LastChangedBy, LastChangedAt, LocalLastChangedAt;
+  association _Item { create; }
+  // Custom actions
+  // Custom action to release the document (Instanse action)
+  action release_doc result [1] $self;
+  // Custom action to update the billing date (Instanse action)
+  action UpdateBillingdate result [1] $self;
+  //Custom static factory action to create a sales document (Static action)
+  static factory action ( features : global ) CreateSalesDoc parameter ZRAP_AB_CRT_NEW_DOC [1];
+  // Custom static factory action to copy a sales document (Static action)
+  factory action copy_instance [1];
+  validation validatenetamount on save { field NetAmount; create; update; }
+  mapping for zrap_bill_header
+    {
+      BillId             = bill_id;
+      BillType           = bill_type;
+      BillDate           = bill_date;
+      CustomerId         = customer_id;
+      NetAmount          = net_amount;
+      Currency           = currency;
+      SalesOrg           = sales_org;
+      ReleaseStatus      = release_status;
+      CreatedBy          = created_by;
+      CreatedAt          = created_at;
+      LastChangedBy      = last_changed_by;
+      LastChangedAt      = last_changed_at;
+      LocalLastChangedAt = local_last_changed_at;
+    }
+}
+
+define behavior for ZRAP_R_BILLITM alias BillItem
+persistent table zrap_billitem
+lock dependent by _Hdr
+authorization dependent by _Hdr
+//etag master <field_name>
+{
+  update;
+  delete;
+  field ( readonly : update ) BillId, ItemNo;
+  field ( readonly ) CreatedBy, CreatedAt, LastChangedBy, LastChangedAt, LocalLastChangedAt;
+  association _Hdr;
+  // "Determineing the Material Description based on the MaterialId"
+  determination determineitem_desc on modify { field MaterialId; create; }
+  validation validatequantity on save { field Quantity; create; update; }
+  validation validateamt on save { field ItemAmount; create; update; }
+  mapping for zrap_billitem
+    {
+      BillId             = Bill_Id;
+      ItemNo             = Item_No;
+      MaterialId         = Material_Id;
+      Description        = Description;
+      Quantity           = Quantity;
+      ItemAmount         = Item_Amount;
+      Currency           = Currency;
+      Uom                = Uom;
+      CreatedBy          = Created_By;
+      CreatedAt          = Created_At;
+      LastChangedBy      = last_changed_by;
+      LastChangedAt      = last_changed_at;
+      LocalLastChangedAt = local_last_changed_at;
+    }
+}
